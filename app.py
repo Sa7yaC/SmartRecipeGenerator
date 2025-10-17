@@ -1,4 +1,7 @@
 import streamlit as st
+from PIL import Image
+import io, json, os
+import numpy as np
 
 st.set_page_config(page_title="Smart Recipe Generator", layout="wide")
 
@@ -35,6 +38,14 @@ SUBSTITUTIONS = {
     "beef":["mushroom","jackfruit (young)"]
 }
 
+# ------------------ MOCK INGREDIENT RECOGNITION ------------------
+def recognize_ingredients(image_bytes):
+    """Simulate ingredient recognition from images."""
+    possible_ings = ["tomato","onion","pepper","banana","apple","mango","broccoli","egg","chicken","bread"]
+    # For simplicity, return a random subset
+    recognized = np.random.choice(possible_ings, size=np.random.randint(1,4), replace=False)
+    return list(recognized)
+
 # ------------------ RECIPE MATCHING ------------------
 def match_recipes(provided_ings, dietary=None, max_time=None, difficulty=None):
     provided = set(i.strip().lower() for i in provided_ings)
@@ -58,7 +69,7 @@ def suggest_subs(missing):
 
 # ------------------ STREAMLIT UI ------------------
 st.title("🥣 Smart Recipe Generator")
-st.write("Enter ingredients manually to get smart recipe suggestions!")
+st.write("Upload ingredient photos or enter ingredients manually to get recipe suggestions!")
 
 with st.sidebar:
     st.header("Filters & Preferences")
@@ -69,23 +80,33 @@ with st.sidebar:
     max_time = st.number_input("Max cooking time (minutes)", min_value=0, value=0)
     if max_time == 0: max_time = None
 
-# Text input only
+uploaded_files = st.file_uploader("Upload ingredient photos (optional)", type=["jpg","png","jpeg"], accept_multiple_files=True)
+recognized = []
+if uploaded_files:
+    for f in uploaded_files:
+        bytes_data = f.read()
+        rec = recognize_ingredients(bytes_data)
+        recognized.extend(rec)
+        st.image(f, caption=f.name, width=150)
+    st.success(f"Recognized ingredients: {', '.join(set(recognized))}")
+
 typed_ings = st.text_input("Enter ingredients (comma-separated)", "")
 typed_ings_list = [i.strip() for i in typed_ings.split(",") if i.strip()]
+all_ings = list(set(typed_ings_list + recognized))
 
 if st.button("Generate Recipes"):
-    if not typed_ings_list:
-        st.warning("Please enter at least one ingredient.")
+    if not all_ings:
+        st.warning("Please provide ingredients or upload images.")
     else:
-        st.info(f"Searching recipes using: {', '.join(typed_ings_list)}")
-        matches = match_recipes(typed_ings_list, dietary, max_time, difficulty)
+        st.info(f"Searching recipes using: {', '.join(all_ings)}")
+        matches = match_recipes(all_ings, dietary, max_time, difficulty)
         if not matches:
             st.error("No matches found. Try adding more ingredients.")
         else:
             for score, matched, r in matches:
                 with st.expander(f"🍽️ {r['title']} ({r['cuisine']}) — {r['difficulty'].title()}, {r['cook_time']} min"):
                     st.markdown(f"**Matched Ingredients:** {', '.join(matched)}")
-                    missing = set(r['ingredients']) - set(typed_ings_list)
+                    missing = set(r['ingredients']) - set(all_ings)
                     if missing:
                         st.markdown(f"**Missing:** {', '.join(missing)}")
                         subs = suggest_subs(missing)

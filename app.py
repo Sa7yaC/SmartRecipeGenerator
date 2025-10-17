@@ -2,17 +2,8 @@ import streamlit as st
 from PIL import Image
 import io, json, os
 import numpy as np
-import tensorflow as tf
-from tensorflow.keras.applications.mobilenet_v2 import MobileNetV2, preprocess_input, decode_predictions
 
 st.set_page_config(page_title="Smart Recipe Generator", layout="wide")
-
-# ------------------ LOAD MODEL ------------------
-@st.cache_resource
-def load_model():
-    return MobileNetV2(weights="imagenet")
-
-MODEL = load_model()
 
 # ------------------ DATA ------------------
 RECIPE_DB = [
@@ -47,26 +38,15 @@ SUBSTITUTIONS = {
     "beef":["mushroom","jackfruit (young)"]
 }
 
-IMAGENET_TO_ING = {
-    "banana":"banana","orange":"orange","lemon":"lemon","pineapple":"pineapple",
-    "broccoli":"broccoli","mushroom":"mushroom","bell_pepper":"bell pepper",
-    "strawberry":"berries","gar":"garlic","granny_smith":"apple","custard_apple":"apple"
-}
-
-# ------------------ FUNCTIONS ------------------
+# ------------------ MOCK INGREDIENT RECOGNITION ------------------
 def recognize_ingredients(image_bytes):
-    img = Image.open(io.BytesIO(image_bytes)).convert("RGB").resize((224,224))
-    x = np.expand_dims(np.array(img), axis=0)
-    x = preprocess_input(x)
-    preds = MODEL.predict(x)
-    decoded = decode_predictions(preds, top=5)[0]
-    ingredients = set()
-    for (_, label, _) in decoded:
-        label = label.lower().replace(" ","_")
-        if label in IMAGENET_TO_ING:
-            ingredients.add(IMAGENET_TO_ING[label])
-    return list(ingredients)
+    """Simulate ingredient recognition from images."""
+    possible_ings = ["tomato","onion","pepper","banana","apple","mango","broccoli","egg","chicken","bread"]
+    # For simplicity, return a random subset
+    recognized = np.random.choice(possible_ings, size=np.random.randint(1,4), replace=False)
+    return list(recognized)
 
+# ------------------ RECIPE MATCHING ------------------
 def match_recipes(provided_ings, dietary=None, max_time=None, difficulty=None):
     provided = set(i.strip().lower() for i in provided_ings)
     results = []
@@ -100,7 +80,6 @@ with st.sidebar:
     max_time = st.number_input("Max cooking time (minutes)", min_value=0, value=0)
     if max_time == 0: max_time = None
 
-# Image upload
 uploaded_files = st.file_uploader("Upload ingredient photos (optional)", type=["jpg","png","jpeg"], accept_multiple_files=True)
 recognized = []
 if uploaded_files:
@@ -111,7 +90,6 @@ if uploaded_files:
         st.image(f, caption=f.name, width=150)
     st.success(f"Recognized ingredients: {', '.join(set(recognized))}")
 
-# Text input
 typed_ings = st.text_input("Enter ingredients (comma-separated)", "")
 typed_ings_list = [i.strip() for i in typed_ings.split(",") if i.strip()]
 all_ings = list(set(typed_ings_list + recognized))
@@ -145,7 +123,4 @@ if st.button("Generate Recipes"):
                     st.write(r["nutrition"])
 
 st.markdown("---")
-st.caption("Built with ❤️ using Streamlit & TensorFlow | Smart Recipe Generator Demo")
-
-
-
+st.caption("Built with ❤️ using Streamlit | Smart Recipe Generator Demo")

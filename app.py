@@ -2,8 +2,8 @@ import streamlit as st
 from PIL import Image
 import io, json, os
 import numpy as np
-# import tensorflow as tf
-# from tensorflow.keras.applications.mobilenet_v2 import MobileNetV2, preprocess_input, decode_predictions
+import tensorflow as tf
+from tensorflow.keras.applications.mobilenet_v2 import MobileNetV2, preprocess_input, decode_predictions
 
 st.set_page_config(page_title="Smart Recipe Generator", layout="wide")
 
@@ -146,5 +146,6 @@ if st.button("Generate Recipes"):
 
 st.markdown("---")
 st.caption("Built with ❤️ using Streamlit & TensorFlow | Smart Recipe Generator Demo")
+
 
 
